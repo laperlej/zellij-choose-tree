@@ -1,0 +1,9 @@
+[package]
+name = "zellij-session"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ansi_term = "0.12.1"
+chrono = "0.4.26"
+zellij-tile = "0.40.0"
