@@ -65,7 +65,7 @@ impl State {
     }
 
     fn move_down(&mut self) {
-        if self.cursor < self.nodes.len() - 1 {
+        if self.cursor < self.nodes.len().saturating_sub(1) {
             self.cursor += 1;
         } else {
             self.cursor = 0;
@@ -76,7 +76,7 @@ impl State {
         if self.cursor > 0 {
             self.cursor -= 1;
         } else {
-            self.cursor = self.nodes.len() - 1;
+            self.cursor = self.nodes.len().saturating_sub(1);
         }
     }
     
@@ -122,12 +122,6 @@ impl ZellijPlugin for State {
                 self.sessions = sessions;
                 self.refresh_list();
                 should_render = true;
-            }
-            Event::Visible(_is_visible) => {
-                let i = self.sessions.iter().enumerate().find(|(_, session)| session.is_current_session);
-                if let Some((i, _)) = i {
-                    self.cursor = i;
-                }
             }
             Event::Key(key) => {
                 match key {
