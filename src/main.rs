@@ -54,13 +54,13 @@ impl State {
         self.expanded.contains(session_name)
     }
 
-    fn expand(&mut self, session_name: &str) {
-        self.expanded.insert(session_name.to_string());
+    fn expand(&mut self, session_name: String) {
+        self.expanded.insert(session_name);
         self.refresh_list();
     }
 
-    fn collapse(&mut self, session_name: &str) {
-        self.expanded.remove(session_name);
+    fn collapse(&mut self, session_name: String) {
+        self.expanded.remove(&session_name);
         self.refresh_list();
     }
 
@@ -80,7 +80,7 @@ impl State {
         }
     }
     
-    fn goto(&mut self, node: &Node) {
+    fn goto(&self, node: &Node) {
         match node {
             Node::Session(session) => {
                 if !session.is_current_session {
@@ -90,9 +90,9 @@ impl State {
             },
             Node::Tab(tab) => {
                 let session_idx = self.parent(self.cursor);
-                let session = match &self.nodes[session_idx] {
-                    Node::Session(session) => session,
-                    _ => return
+                let session = match &self.nodes.get(session_idx) {
+                    Some(Node::Session(session)) => session,
+                    _ => return,
                 };
                 if !session.is_current_session {
                     let session_name = session.name.clone();
@@ -108,9 +108,6 @@ impl State {
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
         self.userspace_configuration = configuration;
-        // we need the ReadApplicationState permission to receive the ModeUpdate and TabUpdate
-        // events
-        // we need the RunCommands permission to run "cargo test" in a floating window
         request_permission(&[PermissionType::ReadApplicationState, PermissionType::RunCommands, PermissionType::ChangeApplicationState]);
         subscribe(&[EventType::SessionUpdate, EventType::Key, EventType::Visible]);
     }
@@ -125,17 +122,21 @@ impl ZellijPlugin for State {
             }
             Event::Key(key) => {
                 match key {
+                    // Select the node under the cursor
                     Key::Char('\n') => {
-                        let current_node = self.nodes[self.cursor].clone();
-                        self.goto(&current_node);
+                        if let Some(node) = self.nodes.get(self.cursor) {
+                            self.goto(node)
+                        };
                     }
-                    Key::Char('0') | Key::Char('1') | Key::Char('2') | Key::Char('3') | Key::Char('4') | Key::Char('5') | Key::Char('6') | Key::Char('7') | Key::Char('8') | Key::Char('9') => {
-                        let index = key.to_string().parse::<usize>().unwrap();
-                        if index < self.nodes.len() {
-                            let node = self.nodes[index].clone();
-                            self.goto(&node);
+                    // Select the node at the given index
+                    Key::Char(c) if c.is_ascii_digit() => {
+                        if let Ok(index) = key.to_string().parse::<usize>() {
+                            if let Some(node) = self.nodes.get(index) {
+                                self.goto(node)
+                            };
                         }
                     },
+                    // Move up, looping around
                     Key::Char('k') | Key::Up => {
                         if self.cursor > 0 {
                             self.cursor -= 1;
@@ -144,6 +145,7 @@ impl ZellijPlugin for State {
                         }
                         should_render = true;
                     }
+                    // Move down, looping around
                     Key::Char('j') | Key::Down => {
                         if self.cursor < self.nodes.len().saturating_sub(1) {
                             self.cursor += 1;
@@ -152,12 +154,13 @@ impl ZellijPlugin for State {
                         }
                         should_render = true;
                     }
+                    // Collapse the current node, moving up if already collapsed
                     Key::Char('h') | Key::Left => {
                         let current_node = &self.nodes[self.cursor];
                         match current_node {
                             Node::Session(session) => {
                                 if self.is_expanded(&session.name) {
-                                    self.collapse(&session.name.clone());
+                                    self.collapse(session.name.clone());
                                 } else if self.cursor > 0 {
                                     self.move_up();
                                 }
@@ -169,17 +172,18 @@ impl ZellijPlugin for State {
                                     _ => return false,
                                 };
                                 self.cursor = session_idx;
-                                self.collapse(&session.name.clone());
+                                self.collapse(session.name.clone());
                             }
                         };
                         should_render = true;
                     }
+                    // Expand the current node, moving down if already expanded
                     Key::Char('l') | Key::Right => {
                         let current_node = &self.nodes[self.cursor];
                         match current_node {
                             Node::Session(session) => {
                                 if !self.is_expanded(&session.name.clone()) {
-                                    self.expand(&session.name.clone());
+                                    self.expand(session.name.clone());
                                 } else if self.cursor < self.nodes.len().saturating_sub(1) {
                                     self.move_down();
                                 }
@@ -192,6 +196,7 @@ impl ZellijPlugin for State {
                         };
                         should_render = true;
                     }
+                    // Kill the current node
                     Key::Char('x') | Key::Delete => {
                         let current_node = &self.nodes[self.cursor];
                         match current_node {
@@ -203,6 +208,7 @@ impl ZellijPlugin for State {
                         };
                         should_render = true;
                     }
+                    // Quit
                     Key::Esc => {
                         self.cursor = 0;
                         hide_self();
