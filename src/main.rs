@@ -8,7 +8,6 @@ struct State {
     nodes: Vec<Node>,
     cursor: usize,
     expanded: HashSet<String>,
-    userspace_configuration: BTreeMap<String, String>,
     message: String,
 }
 
@@ -106,8 +105,7 @@ impl State {
 }
 
 impl ZellijPlugin for State {
-    fn load(&mut self, configuration: BTreeMap<String, String>) {
-        self.userspace_configuration = configuration;
+    fn load(&mut self, _configuration: BTreeMap<String, String>) {
         request_permission(&[PermissionType::ReadApplicationState, PermissionType::RunCommands, PermissionType::ChangeApplicationState]);
         subscribe(&[EventType::SessionUpdate, EventType::Key, EventType::Visible]);
     }
