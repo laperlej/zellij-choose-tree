@@ -24,8 +24,10 @@ impl SessionTree {
         if let Some(tab_idx) = self.cursor.tab {
             if tab_idx > 0 {
                 self.cursor.tab = Some(tab_idx - 1);
-                return;
+            } else {
+                self.cursor.tab = None;
             }
+            return
         }
         let next_session_idx = match self.cursor.session {
             0 => self.sessions.len().saturating_sub(1),
@@ -43,19 +45,22 @@ impl SessionTree {
     fn next_with_cycle(&mut self) {
         if let Some(session) = self.sessions.get(self.cursor.session) {
             if let Some(tab_idx) = self.cursor.tab {
-                if tab_idx + 1 < session.tabs.len() {
-                    self.cursor.tab = Some(tab_idx + 1);
-                    return;
+                if tab_idx + 1 < session.tabs.len() { 
+                    self.cursor.tab = Some(tab_idx + 1); 
+                    return; 
                 }
             }
-            let next_session_idx = self.cursor.session.wrapping_sub(1).min(self.sessions.len().saturating_sub(1));
-            let next_tab_idx = match self.expanded.get(next_session_idx) {
-                Some(true) => Some(0),
-                Some(false) => None,
-                None => None,
+            if self.cursor.tab.is_none() && *self.expanded.get(self.cursor.session).unwrap_or(&false) {
+                self.cursor.tab = Some(0);
+                return;
+            }
+            let next_session_idx = if self.cursor.session + 1 < self.sessions.len() {
+                self.cursor.session + 1
+            } else {
+                0
             };
             self.cursor.session = next_session_idx;
-            self.cursor.tab = next_tab_idx;
+            self.cursor.tab = None;
         }
     }
 
@@ -129,7 +134,27 @@ impl SessionTree {
         }
     }
 
-    pub fn switch_by_index(&self, index: usize) {
+    pub fn switch_by_index(&mut self, target: usize) {
+        let mut index = 0;
+        for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
+            index += 1;
+            if !*is_expanded {
+                continue;
+            }
+            if index == target {
+                self.cursor.session = session_index;
+                self.cursor.tab = None;
+                self.switch_to_selected();
+            }
+            for (tab_index, _tab) in session.tabs.iter().enumerate() {
+                index += 1;
+                if index == target {
+                    self.cursor.session = session_index;
+                    self.cursor.tab = Some(tab_index);
+                    self.switch_to_selected();
+                }
+            }
+        }
     }
 
     pub fn switch_to_selected(&self) {
@@ -163,7 +188,7 @@ impl SessionTree {
                 false => format!("({0}) {1}", index, session.name),
             };
             let mut session_line = NestedListItem::new(text).indent(0);
-            if !*is_expanded && session_index == self.cursor.session {
+            if self.cursor.tab.is_none() && session_index == self.cursor.session {
                 session_line = session_line.selected();
             }
             nested_list.push(session_line);
