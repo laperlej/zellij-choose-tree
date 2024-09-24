@@ -90,13 +90,13 @@ impl ZellijPlugin for State {
         should_render
     }
 
-    fn render(&mut self, _rows: usize, _cols: usize) {
+    fn render(&mut self, rows: usize, cols: usize) {
         println!();
         if !self.debug.is_empty() {
             println!("{}", self.debug);
             println!();
         }
-        self.session_tree.render(_rows, _cols);
+        self.session_tree.render(rows - 3, cols);
     }
 }
 

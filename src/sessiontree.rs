@@ -90,6 +90,10 @@ impl SessionTree {
                     return;
                 }
             }
+            if self.cursor.tab.is_none() && *self.expanded.get(self.cursor.session).unwrap_or(&false) {
+                self.cursor.tab = Some(0);
+                return;
+            }
             let next_session_idx = (self.cursor.session + 1).min(self.sessions.len().saturating_sub(1));
             let next_tab_idx = match self.expanded.get(next_session_idx) {
                 Some(true) => self.cursor.tab,
@@ -129,7 +133,6 @@ impl SessionTree {
             }
             Some(false) => {
                 self.toggle(true);
-                self.cursor.tab = Some(0);
             }
             None => {}
         }
@@ -165,10 +168,11 @@ impl SessionTree {
     }
 
 
-    pub fn render(&mut self, _rows: usize, _cols: usize) {
+    pub fn render(&mut self, rows: usize, _cols: usize) {
         let mut index = 0;
         let mut nested_list = Vec::new();
         let mut new_quick_select = Vec::new();
+        let mut selected_index = 0;
         for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
             let text = match session.is_current_session {
                 true => format!("({0}) {1} (attached)", to_keybind(index), session.name),
@@ -177,6 +181,7 @@ impl SessionTree {
             let mut session_line = NestedListItem::new(text).indent(0);
             if self.cursor.tab.is_none() && session_index == self.cursor.session {
                 session_line = session_line.selected();
+                selected_index = index;
             }
             nested_list.push(session_line);
             new_quick_select.push(Cursor {
@@ -194,6 +199,7 @@ impl SessionTree {
                 let mut tab_line = NestedListItem::new(text).indent(1);
                 if session_index == self.cursor.session && Some(tab_index) == self.cursor.tab {
                     tab_line = tab_line.selected();
+                    selected_index = index;
                 }
                 nested_list.push(tab_line);
                 new_quick_select.push(Cursor {
@@ -204,7 +210,8 @@ impl SessionTree {
             }
         }
         self.quick_select = new_quick_select;
-        print_nested_list(nested_list);
+        let from = selected_index.saturating_sub(rows.saturating_sub(1) / 2).min(nested_list.len().saturating_sub(rows));
+        print_nested_list(nested_list.into_iter().skip(from).take(rows).collect());
     }
 }
 
