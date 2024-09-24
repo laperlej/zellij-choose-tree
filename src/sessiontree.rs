@@ -1,240 +1,198 @@
 use zellij_tile::prelude::*;
 
-use std::collections::{HashSet, BTreeMap};
-
 #[derive(Default)]
 pub struct SessionTree {
+    cursor: Cursor,
+    expanded: Vec<bool>,
     sessions: Vec<SessionInfo>,
-    nodes: Vec<Node>,
-    cursor: usize,
-    expanded: HashSet<String>,
 }
 
-#[derive(Debug, Clone)]
-enum Node {
-    Session(SessionInfo),
-    Tab(TabInfo),
-}
-
-impl Node {
-    fn is_session(&self) -> bool {
-        match self {
-            Node::Session(_) => true,
-            Node::Tab(_) => false,
-        }
-    }
+#[derive(Debug, Default)]
+struct Cursor {
+    session: usize,
+    tab: Option<usize>,
 }
 
 impl SessionTree {
-    pub fn refresh_list(&mut self) {
-        let mut new_nodes: Vec<Node> = Vec::new();
-        for session in self.sessions.iter() {
-            new_nodes.push(Node::Session(session.clone()));
-            if self.is_expanded(&session.name) {
-                for tab in session.tabs.iter() {
-                    new_nodes.push(Node::Tab(tab.clone()));
-                }
+    pub fn toggle(&mut self, state: bool) {
+        if let Some(is_expanded) = self.expanded.get_mut(self.cursor.session) {
+            *is_expanded = state;
+        }
+    }
+
+    fn previous_with_cycle(&mut self) {
+        if let Some(tab_idx) = self.cursor.tab {
+            if tab_idx > 0 {
+                self.cursor.tab = Some(tab_idx - 1);
+                return;
             }
         }
-        self.nodes = new_nodes;
+        let next_session_idx = match self.cursor.session {
+            0 => self.sessions.len().saturating_sub(1),
+            _ => self.cursor.session.saturating_sub(1),
+        };
+        let next_tab_idx = match self.expanded.get(next_session_idx) {
+            Some(true) => self.sessions.get(next_session_idx).map(|session| session.tabs.len().saturating_sub(1)),
+            Some(false) => None,
+            None => None,
+        };
+        self.cursor.session = next_session_idx;
+        self.cursor.tab = next_tab_idx;
     }
 
-    pub fn parent(&self, mut i: usize) -> usize {
-        while i > 0 && !self.nodes[i].is_session() {
-            i -= 1;
-        }
-        i
-    }
-
-    pub fn is_expanded(&self, session_name: &str) -> bool {
-        self.expanded.contains(session_name)
-    }
-
-    pub fn expand(&mut self, session_name: String) {
-        self.expanded.insert(session_name);
-        self.refresh_list();
-    }
-
-    pub fn collapse(&mut self, session_name: String) {
-        self.expanded.remove(&session_name);
-        self.refresh_list();
-    }
-
-    pub fn move_down(&mut self) {
-        if self.cursor < self.nodes.len().saturating_sub(1) {
-            self.cursor += 1;
-        } else {
-            self.cursor = 0;
-        }
-    }
-
-    pub fn move_up(&mut self) {
-        if self.cursor > 0 {
-            self.cursor -= 1;
-        } else {
-            self.cursor = self.nodes.len().saturating_sub(1);
-        }
-    }
-    
-    pub fn goto(&self, node: &Node) {
-        match node {
-            Node::Session(session) => {
-                if !session.is_current_session {
-                    let session_name = session.name.clone();
-                    switch_session_with_focus(&session_name, Some(0), None);
+    fn next_with_cycle(&mut self) {
+        if let Some(session) = self.sessions.get(self.cursor.session) {
+            if let Some(tab_idx) = self.cursor.tab {
+                if tab_idx + 1 < session.tabs.len() {
+                    self.cursor.tab = Some(tab_idx + 1);
+                    return;
                 }
-            },
-            Node::Tab(tab) => {
-                let session_idx = self.parent(self.cursor);
-                let session = match &self.nodes.get(session_idx) {
-                    Some(Node::Session(session)) => session,
-                    _ => return,
-                };
-                if !session.is_current_session {
-                    let session_name = session.name.clone();
-                    let tab_position = tab.position;
-                    switch_session_with_focus(&session_name, Some(tab_position), None);
+            }
+            let next_session_idx = self.cursor.session.wrapping_sub(1).min(self.sessions.len().saturating_sub(1));
+            let next_tab_idx = match self.expanded.get(next_session_idx) {
+                Some(true) => Some(0),
+                Some(false) => None,
+                None => None,
+            };
+            self.cursor.session = next_session_idx;
+            self.cursor.tab = next_tab_idx;
+        }
+    }
+
+    fn previous(&mut self) {
+        if let Some(tab_idx) = self.cursor.tab {
+            if tab_idx > 0 {
+                self.cursor.tab = Some(tab_idx - 1);
+                return;
+            }
+        }
+        let next_session_idx = self.cursor.session.saturating_sub(1);
+        let next_tab_idx = match self.expanded.get(next_session_idx) {
+            Some(true) => self.sessions.get(next_session_idx).map(|session| session.tabs.len().saturating_sub(1)),
+            Some(false) => None,
+            None => None,
+        };
+        self.cursor.session = next_session_idx;
+        self.cursor.tab = next_tab_idx;
+    }
+
+    fn next(&mut self) {
+        if let Some(session) = self.sessions.get(self.cursor.session) {
+            if let Some(tab_idx) = self.cursor.tab {
+                if tab_idx + 1 < session.tabs.len() {
+                    self.cursor.tab = Some(tab_idx + 1);
+                    return;
                 }
+            }
+            let next_session_idx = (self.cursor.session + 1).min(self.sessions.len().saturating_sub(1));
+            let next_tab_idx = match self.expanded.get(next_session_idx) {
+                Some(true) => self.cursor.tab,
+                Some(false) => None,
+                None => None,
+            };
+            self.cursor.session = next_session_idx;
+            self.cursor.tab = next_tab_idx;
+        }
+    }
+
+    pub fn handle_down(&mut self) {
+        self.next_with_cycle()
+    }
+
+    pub fn handle_up(&mut self) {
+        self.previous_with_cycle()
+    }
+
+    pub fn handle_left(&mut self)  {
+        match self.expanded.get(self.cursor.session) {
+            Some(true) => {
+                self.toggle(false);
+                self.cursor.tab = None;
+            }
+            Some(false) => {
+                self.previous();
+            }
+            None => {}
+        }
+    }
+
+    pub fn handle_right(&mut self) {
+        match self.expanded.get(self.cursor.session) {
+            Some(true) => {
+                self.next();
+            }
+            Some(false) => {
+                self.toggle(true);
+                self.cursor.tab = Some(0);
+            }
+            None => {}
+        }
+    }
+
+    pub fn switch_by_index(&self, index: usize) {
+    }
+
+    pub fn switch_to_selected(&self) {
+        if let Some(session) = self.sessions.get(self.cursor.session) {
+            if let Some(tab_idx) = self.cursor.tab {
+                if let Some(tab) = session.tabs.get(tab_idx) {
+                    switch_session_with_focus(&session.name, Some(tab.position), None);
+                }
+            } else if !session.is_current_session {
+                switch_session(Some(&session.name));
             }
         };
-        hide_self();
     }
 
-    pub fn update(&mut self, event: Event) -> bool {
-        let mut should_render = false;
-        match event { 
-            Event::SessionUpdate(sessions, _) => {
-                self.sessions = sessions;
-                self.refresh_list();
-                should_render = true;
-            }
-            Event::Key(key) => {
-                match key {
-                    // Select the node under the cursor
-                    Key::Char('\n') => {
-                        if let Some(node) = self.nodes.get(self.cursor) {
-                            self.goto(node)
-                        };
-                    }
-                    // Select the node at the given index
-                    Key::Char(c) if c.is_ascii_digit() => {
-                        if let Ok(index) = key.to_string().parse::<usize>() {
-                            if let Some(node) = self.nodes.get(index) {
-                                self.goto(node)
-                            };
-                        }
-                    },
-                    // Move up, looping around
-                    Key::Char('k') | Key::Up => {
-                        if self.cursor > 0 {
-                            self.cursor -= 1;
-                        } else {
-                            self.cursor = self.nodes.len().saturating_sub(1);
-                        }
-                        should_render = true;
-                    }
-                    // Move down, looping around
-                    Key::Char('j') | Key::Down => {
-                        if self.cursor < self.nodes.len().saturating_sub(1) {
-                            self.cursor += 1;
-                        } else {
-                            self.cursor = 0;
-                        }
-                        should_render = true;
-                    }
-                    // Collapse the current node, moving up if already collapsed
-                    Key::Char('h') | Key::Left => {
-                        let current_node = &self.nodes[self.cursor];
-                        match current_node {
-                            Node::Session(session) => {
-                                if self.is_expanded(&session.name) {
-                                    self.collapse(session.name.clone());
-                                } else if self.cursor > 0 {
-                                    self.move_up();
-                                }
-                            },
-                            Node::Tab(_tab) => {
-                                let session_idx = self.parent(self.cursor);
-                                let session = match &self.nodes[session_idx] {
-                                    Node::Session(session) => session,
-                                    _ => return false,
-                                };
-                                self.cursor = session_idx;
-                                self.collapse(session.name.clone());
-                            }
-                        };
-                        should_render = true;
-                    }
-                    // Expand the current node, moving down if already expanded
-                    Key::Char('l') | Key::Right => {
-                        let current_node = &self.nodes[self.cursor];
-                        match current_node {
-                            Node::Session(session) => {
-                                if !self.is_expanded(&session.name.clone()) {
-                                    self.expand(session.name.clone());
-                                } else if self.cursor < self.nodes.len().saturating_sub(1) {
-                                    self.move_down();
-                                }
-                            },
-                            Node::Tab(_tab) => {
-                                if self.cursor < self.nodes.len().saturating_sub(1) {
-                                    self.move_down();
-                                }
-                            }
-                        };
-                        should_render = true;
-                    }
-                    // Kill the current node
-                    Key::Char('x') | Key::Delete => {
-                        let current_node = &self.nodes[self.cursor];
-                        match current_node {
-                            Node::Session(session) => {
-                                kill_sessions(&[session.name.clone()]);
-                            },
-                            Node::Tab(_tab) => {
-                            }
-                        };
-                        should_render = true;
-                    }
-                    // Quit
-                    Key::Esc => {
-                        self.cursor = 0;
-                        hide_self();
-                    }
-                    _ => (),
-                }
-            }
-            _ => (),
-        };
-        should_render
+    pub fn kill_selected(& self) {
+        //killing a tab not supported by zellij yet
+        if self.cursor.tab.is_some() {
+            return;
+        }
+        if let Some(session) = &self.sessions.get(self.cursor.session) {
+            kill_sessions(&[session.name.clone()]);
+        }
     }
 
     pub fn render(&mut self, _rows: usize, _cols: usize) {
-        let nested_list = self.nodes.iter().enumerate().map(|(i, node)| {
-            let item = match node {
-                Node::Session(session) => {
-                    let is_current = session.is_current_session;
-                    let text = match is_current {
-                        true => format!("({0}) {1} (attached)", i, session.name),
-                        false => format!("({0}) {1}", i, session.name),
-                    };
-                    NestedListItem::new(text)
-                },
-                Node::Tab(tab) => {
-                    let is_current = tab.active;
-                    let text = match is_current {
-                        true => format!("({0}) {1} (active)", i, tab.name),
-                        false => format!("({0}) {1}", i, tab.name),
-                    };
-                    NestedListItem::new(text).indent(1)
-                }
+        let mut index = 0;
+        let mut nested_list = Vec::new();
+        for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
+            let text = match session.is_current_session {
+                true => format!("({0}) {1} (attached)", index, session.name),
+                false => format!("({0}) {1}", index, session.name),
             };
-            if i == self.cursor {
-                item.selected()
-            } else {
-                item
+            let mut session_line = NestedListItem::new(text).indent(0);
+            if !*is_expanded && session_index == self.cursor.session {
+                session_line = session_line.selected();
             }
-        }).collect();
+            nested_list.push(session_line);
+            index += 1;
+
+            if !*is_expanded {
+                continue;
+            }
+
+            for (tab_index, tab) in session.tabs.iter().enumerate() {
+                let text = format!("({0}) {1}", index, tab.name);
+                let mut tab_line = NestedListItem::new(text).indent(1);
+                if session_index == self.cursor.session && Some(tab_index) == self.cursor.tab {
+                    tab_line = tab_line.selected();
+                }
+                nested_list.push(tab_line);
+                index += 1;
+            }
+        }
         print_nested_list(nested_list);
+    }
+}
+
+impl From<Vec<SessionInfo>> for SessionTree {
+    fn from(sessions: Vec<SessionInfo>) -> Self {
+        Self {
+            cursor: Cursor::default(),
+            expanded: vec![false; sessions.len()],
+            sessions,
+        }
     }
 }

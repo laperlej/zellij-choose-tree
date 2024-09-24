@@ -8,6 +8,7 @@ use std::collections::BTreeMap;
 #[derive(Default)]
 struct State {
     session_tree: SessionTree,
+    initialised: bool,
 
     message: String,
 }
@@ -22,7 +23,63 @@ impl ZellijPlugin for State {
     }
 
     fn update(&mut self, event: Event) -> bool {
-        self.session_tree.update(event)
+        let mut should_render = false;
+        match event { 
+            Event::SessionUpdate(sessions, _) => {
+                if !self.initialised {
+                    self.session_tree = SessionTree::from(sessions);
+                    self.initialised = true;
+                    should_render = true;
+                }
+            }
+            Event::Key(key) => {
+                match key {
+                    // Select the node under the cursor
+                    Key::Char('\n') => {
+                        self.session_tree.switch_to_selected();
+                        hide_self();
+                    }
+                    // Select the node at the given index
+                    Key::Char(c) if c.is_ascii_digit() => {
+                        if let Some(digit) = c.to_digit(10) {
+                            self.session_tree.switch_by_index(digit as usize);
+                        }
+                    },
+                    // Move up, looping around
+                    Key::Char('k') | Key::Up => {
+                        self.session_tree.handle_up();
+                        should_render = true;
+                    }
+                    // Move down, looping around
+                    Key::Char('j') | Key::Down => {
+                        self.session_tree.handle_down();
+                        should_render = true;
+                    }
+                    // Collapse the current node, moving up if already collapsed
+                    Key::Char('h') | Key::Left => {
+                        self.session_tree.handle_left();
+                        should_render = true;
+                    }
+                    // Expand the current node, moving down if already expanded
+                    Key::Char('l') | Key::Right => {
+                        self.session_tree.handle_right();
+                        should_render = true;
+                    }
+                    // Kill the current node
+                    Key::Char('x') | Key::Delete => {
+                        self.session_tree.kill_selected();
+                        should_render = true;
+                    }
+                    // Quit
+                    Key::Esc => {
+                        hide_self();
+                    }
+                    _ => (),
+                }
+            }
+            _ => (),
+        };
+        should_render
     }
 
     fn render(&mut self, _rows: usize, _cols: usize) {
