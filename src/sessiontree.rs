@@ -5,9 +5,10 @@ pub struct SessionTree {
     cursor: Cursor,
     expanded: Vec<bool>,
     sessions: Vec<SessionInfo>,
+    quick_select: Vec<Cursor>,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct Cursor {
     session: usize,
     tab: Option<usize>,
@@ -135,25 +136,9 @@ impl SessionTree {
     }
 
     pub fn switch_by_index(&mut self, target: usize) {
-        let mut index = 0;
-        for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
-            index += 1;
-            if !*is_expanded {
-                continue;
-            }
-            if index == target {
-                self.cursor.session = session_index;
-                self.cursor.tab = None;
-                self.switch_to_selected();
-            }
-            for (tab_index, _tab) in session.tabs.iter().enumerate() {
-                index += 1;
-                if index == target {
-                    self.cursor.session = session_index;
-                    self.cursor.tab = Some(tab_index);
-                    self.switch_to_selected();
-                }
-            }
+        if let Some(new_cursor) = self.quick_select.get(target) {
+            self.cursor = new_cursor.clone();
+            self.switch_to_selected();
         }
     }
 
@@ -182,6 +167,7 @@ impl SessionTree {
     pub fn render(&mut self, _rows: usize, _cols: usize) {
         let mut index = 0;
         let mut nested_list = Vec::new();
+        let mut new_quick_select = Vec::new();
         for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
             let text = match session.is_current_session {
                 true => format!("({0}) {1} (attached)", index, session.name),
@@ -192,6 +178,10 @@ impl SessionTree {
                 session_line = session_line.selected();
             }
             nested_list.push(session_line);
+            new_quick_select.push(Cursor {
+                session: session_index,
+                tab: None,
+            });
             index += 1;
 
             if !*is_expanded {
@@ -205,9 +195,14 @@ impl SessionTree {
                     tab_line = tab_line.selected();
                 }
                 nested_list.push(tab_line);
+                new_quick_select.push(Cursor {
+                    session: session_index,
+                    tab: Some(tab_index),
+                });
                 index += 1;
             }
         }
+        self.quick_select = new_quick_select;
         print_nested_list(nested_list);
     }
 }
@@ -218,6 +213,7 @@ impl From<Vec<SessionInfo>> for SessionTree {
             cursor: Cursor::default(),
             expanded: vec![false; sessions.len()],
             sessions,
+            quick_select: vec![],
         }
     }
 }
