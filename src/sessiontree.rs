@@ -164,14 +164,15 @@ impl SessionTree {
         }
     }
 
+
     pub fn render(&mut self, _rows: usize, _cols: usize) {
         let mut index = 0;
         let mut nested_list = Vec::new();
         let mut new_quick_select = Vec::new();
         for ((session_index, session), is_expanded) in self.sessions.iter().enumerate().zip(self.expanded.iter()) {
             let text = match session.is_current_session {
-                true => format!("({0}) {1} (attached)", index, session.name),
-                false => format!("({0}) {1}", index, session.name),
+                true => format!("({0}) {1} (attached)", to_keybind(index), session.name),
+                false => format!("({0}) {1}", to_keybind(index), session.name),
             };
             let mut session_line = NestedListItem::new(text).indent(0);
             if self.cursor.tab.is_none() && session_index == self.cursor.session {
@@ -189,7 +190,7 @@ impl SessionTree {
             }
 
             for (tab_index, tab) in session.tabs.iter().enumerate() {
-                let text = format!("({0}) {1}", index, tab.name);
+                let text = format!("({0}) {1}", to_keybind(index), tab.name);
                 let mut tab_line = NestedListItem::new(text).indent(1);
                 if session_index == self.cursor.session && Some(tab_index) == self.cursor.tab {
                     tab_line = tab_line.selected();
@@ -216,4 +217,14 @@ impl From<Vec<SessionInfo>> for SessionTree {
             quick_select: vec![],
         }
     }
+}
+
+fn to_keybind(index: usize) -> String {
+    if index >= 36 {
+        return "".to_string();
+    }
+    if index < 10 {
+        return format!("{}", index);
+    }
+    (b'A' as usize + index - 10).to_string()
 }

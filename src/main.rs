@@ -10,7 +10,7 @@ struct State {
     session_tree: SessionTree,
     initialised: bool,
 
-    message: String,
+    debug: String,
 }
 
 register_plugin!(State);
@@ -39,12 +39,6 @@ impl ZellijPlugin for State {
                         self.session_tree.switch_to_selected();
                         hide_self();
                     }
-                    // Select the node at the given index
-                    Key::Char(c) if c.is_ascii_digit() => {
-                        if let Some(digit) = c.to_digit(10) {
-                            self.session_tree.switch_by_index(digit as usize);
-                        }
-                    },
                     // Move up, looping around
                     Key::Char('k') | Key::Up => {
                         self.session_tree.handle_up();
@@ -68,8 +62,22 @@ impl ZellijPlugin for State {
                     // Kill the current node
                     Key::Char('x') | Key::Delete => {
                         self.session_tree.kill_selected();
+                        self.initialised = false;
                         should_render = true;
                     }
+                    // Select the node at the given index
+                    Key::Char(c) => {
+                        if let Some(digit) = c.to_digit(10) {
+                            self.session_tree.switch_by_index(digit as usize);
+                        }
+                        // Capital letters are used to select the node at the given index
+                        else if c.is_ascii_uppercase() {
+                            let index = 10 + c as u8 - b'A';
+                            self.session_tree.switch_by_index(index as usize);
+                        }
+                        //hide_self();
+                        should_render = true;
+                    },
                     // Quit
                     Key::Esc => {
                         hide_self();
@@ -84,8 +92,8 @@ impl ZellijPlugin for State {
 
     fn render(&mut self, _rows: usize, _cols: usize) {
         println!();
-        if !self.message.is_empty() {
-            println!("{}", self.message);
+        if !self.debug.is_empty() {
+            println!("{}", self.debug);
             println!();
         }
         self.session_tree.render(_rows, _cols);
