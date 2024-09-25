@@ -4,7 +4,7 @@
 
 zellij-choose-tree is a plugin for [zellij](https://github.com/zellij-org/zellij) that allows users to quickly switch between sessions.
 
-It aims to mimic the choose tree in [tmux](https://github.com/tmux/tmux/) accessible with `Ctrl+b s` by default.
+It is inspired by [tmux](https://github.com/tmux/tmux/) choose-tree accessible with `Ctrl+b s` by default.
 
 ## Usage
 
