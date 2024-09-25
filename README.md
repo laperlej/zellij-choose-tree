@@ -4,13 +4,6 @@ zellij-session-tree is a plugin for [zellij](https://github.com/zellij-org/zelli
 
 It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) accessible with `Ctrl+b s` by default.
 
-## What functionalities are provided so far ?
-
-- Tree navigation with arrow keys and vim directions
-- Delete session
-- Switch to session
-- Switch to tab
-
 ## Usage
 
 - Up/Down k/j arrow keys to navigate
@@ -34,7 +27,7 @@ Add the plugin to a keybinding in your config.toml.
 
 In this example, the keybinding is bound to `s` in tmux mode.
 
-```toml
+```kdl
 
 tmux {
     # more keybinds here
