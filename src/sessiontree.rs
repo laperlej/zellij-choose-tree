@@ -228,10 +228,11 @@ impl From<Vec<SessionInfo>> for SessionTree {
 
 fn to_keybind(index: usize) -> String {
     if index >= 36 {
-        return "".to_string();
+        return ' '.to_string();
     }
     if index < 10 {
         return format!("{}", index);
     }
-    (b'A' as usize + index - 10).to_string()
+    let ascii_value = (b'A' as usize + index - 10) as u32;
+    char::from_u32(ascii_value).expect("ascii value out of range").to_string()
 }
