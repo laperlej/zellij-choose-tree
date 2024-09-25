@@ -9,7 +9,7 @@ It is inspired by [tmux](https://github.com/tmux/tmux/) choose-tree accessible w
 ## Usage
 
 - Up/Down k/j arrow keys to navigate
-- Left/Right h/l to fold/unfold sessions and reveal it's tabs
+- Left/Right h/l to fold/unfold sessions to reveal tabs
 - `x` to delete selected session
 - `Enter` to switch to selected session or tab
 - `1-9` `A-Z` to switch to session or tab without navigating
