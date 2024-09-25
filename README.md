@@ -14,11 +14,11 @@ It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) acces
 
 ## Installation
 
-Download zellij-session-tree.wasm from the [latest release](https://github.com/zellij-org/zellij-session-tree/releases/latest) and place it in your zellij plugins folder.
+Download zellij-session-tree.wasm from the [latest release](https://github.com/laperlej/zellij-session-tree/releases/latest) and place it in your zellij plugins folder.
 
 ```bash
 mkdir -p ~/.config/zellij/plugins
-wget https://github.com/zellij-org/zellij-session-tree/releases/latest/download/zellij-session-tree.wasm -O ~/.config/zellij/plugins/zellij-session-tree.wasm
+wget https://github.com/laperlej/zellij-session-tree/releases/latest/download/zellij-session-tree.wasm -O ~/.config/zellij/plugins/zellij-session-tree.wasm
 ```
 
 ## Configuration
