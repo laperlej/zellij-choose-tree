@@ -6,4 +6,4 @@ clean:
 
 deploy:
 	cargo build --target wasm32-wasi --release
-	@cp $(shell pwd)/target/wasm32-wasi/release/zellij-session-tree.wasm ~/.config/zellij/plugins
+	@cp $(shell pwd)/target/wasm32-wasi/release/zellij-choose-tree.wasm ~/.config/zellij/plugins

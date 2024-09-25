@@ -1,10 +1,10 @@
-# zellij-session-tree
+# zellij-choose-tree
 
 [showcase.webm](https://github.com/user-attachments/assets/8a8e19d9-f527-4dfe-9952-a1aec1ba7ef0)
 
-zellij-session-tree is a plugin for [zellij](https://github.com/zellij-org/zellij) that allows users to quickly switch between sessions.
+zellij-choose-tree is a plugin for [zellij](https://github.com/zellij-org/zellij) that allows users to quickly switch between sessions.
 
-It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) accessible with `Ctrl+b s` by default.
+It aims to mimic the choose tree in [tmux](https://github.com/tmux/tmux/) accessible with `Ctrl+b s` by default.
 
 ## Usage
 
@@ -16,11 +16,11 @@ It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) acces
 
 ## Installation
 
-Download zellij-session-tree.wasm from the [latest release](https://github.com/laperlej/zellij-session-tree/releases/latest) and place it in your zellij plugins folder.
+Download zellij-choose-tree.wasm from the [latest release](https://github.com/laperlej/zellij-choose-tree/releases/latest) and place it in your zellij plugins folder.
 
 ```bash
 mkdir -p ~/.config/zellij/plugins
-wget https://github.com/laperlej/zellij-session-tree/releases/latest/download/zellij-session-tree.wasm -O ~/.config/zellij/plugins/zellij-session-tree.wasm
+wget https://github.com/laperlej/zellij-choose-tree/releases/latest/download/zellij-choose-tree.wasm -O ~/.config/zellij/plugins/zellij-choose-tree.wasm
 ```
 
 ## Configuration
@@ -33,7 +33,7 @@ In this example, the keybinding is bound to `s` in tmux mode.
 
 tmux {
     # other keybinds here ...
-    bind "s" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij-session-tree.wasm" {
+    bind "s" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij-choose-tree.wasm" {
             floating true
             move_to_focused_tab true
         }; SwitchToMode "Locked";
