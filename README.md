@@ -2,7 +2,7 @@
 
 [showcase.webm](https://github.com/user-attachments/assets/8a8e19d9-f527-4dfe-9952-a1aec1ba7ef0)
 
-zellij-session-tree is a plugin for [zellij](https://github.com/zellij-org/zellij) that displays a tree of sessions in the status bar.
+zellij-session-tree is a plugin for [zellij](https://github.com/zellij-org/zellij) that allows users to quickly switch between sessions.
 
 It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) accessible with `Ctrl+b s` by default.
 
