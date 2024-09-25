@@ -30,9 +30,8 @@ In this example, the keybinding is bound to `s` in tmux mode.
 ```kdl
 
 tmux {
-    # more keybinds here
-    #
-    bind "s" { LaunchOrFocusPlugin "zellij-session-tree" {
+    # other keybinds here ...
+    bind "s" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij-session-tree.wasm" {
             floating true
             move_to_focused_tab true
         }; SwitchToMode "Locked";
