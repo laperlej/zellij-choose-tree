@@ -23,6 +23,30 @@ It aims to mimic the session tree in [tmux](https://github.com/tmux/tmux/) acces
 
 Download zellij-session-tree.wasm from the [latest release](https://github.com/zellij-org/zellij-session-tree/releases/latest) and place it in your zellij plugins folder.
 
+```bash
+mkdir -p ~/.config/zellij/plugins
+wget https://github.com/zellij-org/zellij-session-tree/releases/latest/download/zellij-session-tree.wasm -O ~/.config/zellij/plugins/zellij-session-tree.wasm
+```
+
+## Configuration
+
+Add the plugin to a keybinding in your config.toml.
+
+In this example, the keybinding is bound to `s` in tmux mode.
+
+```toml
+
+tmux {
+    # more keybinds here
+    #
+    bind "s" { LaunchOrFocusPlugin "zellij-session-tree" {
+            floating true
+            move_to_focused_tab true
+        }; SwitchToMode "Locked";
+    }
+}
+```
+
 ## Contributing
 
 Contributions are welcome. Please open an issue or a pull request.
