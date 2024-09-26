@@ -30,6 +30,7 @@ impl Node for Tab {
     }
     fn focus(&self) -> Result<(), String> {
         switch_session_with_focus(&self.session_name, Some(self.position), None);
+        hide_self();
         Ok(())
     }
     fn kill(&self) -> Result<(), String> {
