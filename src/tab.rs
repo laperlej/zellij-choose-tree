@@ -60,8 +60,9 @@ impl Node for Tab {
     }
     fn render(&self, keybind: String, is_selected: bool) -> NestedListItem {
         let text = format!("({0}) {1}", keybind, self.name);
+        let text_len = text.len();
         match is_selected {
-            true => NestedListItem::new(text).indent(1).selected(),
+            true => NestedListItem::new(text).indent(1).color_range(0, 0..text_len).selected(),
             false => NestedListItem::new(text).indent(1),
         }
     }

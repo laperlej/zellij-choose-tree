@@ -68,8 +68,9 @@ impl Node for Session {
             true => format!("({0}) {1} (attached)", keybind, self.name),
             false => format!("({0}) {1}", keybind, self.name),
         };
+        let text_len = text.len();
         match is_selected {
-            true => NestedListItem::new(text).indent(0).selected(),
+            true => NestedListItem::new(text).indent(0).color_range(0, 0..text_len).selected(),
             false => NestedListItem::new(text).indent(0),
         }
     }
