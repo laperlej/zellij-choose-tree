@@ -30,9 +30,11 @@ impl Node for Session {
     }
     fn focus(&self) -> Result<(), String> {
         if self.is_current_session {
+            hide_self();
             return Err("cannot goto current session".to_string());
         }
         switch_session(Some(&self.name));
+        hide_self();
         Ok(())
     }
     fn kill(&self) -> Result<(), String> {
