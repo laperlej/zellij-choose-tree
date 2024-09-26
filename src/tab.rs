@@ -59,9 +59,10 @@ impl Node for Tab {
     fn collapse(&mut self) {
     }
     fn render(&self, keybind: String, is_selected: bool) -> NestedListItem {
+        let text = format!("({0}) {1}", keybind, self.name);
         match is_selected {
-            true => NestedListItem::new(format!("({0}) {1}", keybind, self.name)).indent(1).selected(),
-            false => NestedListItem::new(format!("({0}) {1}", keybind, self.name)).indent(1),
+            true => NestedListItem::new(text).indent(1).selected(),
+            false => NestedListItem::new(text).indent(1),
         }
     }
 }
