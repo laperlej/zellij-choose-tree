@@ -5,28 +5,28 @@ use std::cell::RefCell;
 use crate::sessiontree::Node;
 
 pub struct Session {
-    id: usize,
+    index: usize,
     name: String,
     is_current_session: bool,
-    tabs: Rc<RefCell<Vec<usize>>>,
+    tabs: Vec<Rc<RefCell<dyn Node>>>,
     is_expanded: bool,
 }
 
 impl Session {
-    pub fn new(id: usize, name: String, is_current_session: bool, tabs: &Rc<RefCell<Vec<usize>>>) -> Self {
+    pub fn new(index: usize, name: String, is_current_session: bool) -> Self {
         Self {
-            id,
+            index,
             name,
             is_current_session,
-            tabs: tabs.clone(),
+            tabs: Vec::new(),
             is_expanded: false,
         }
     }
 }
 
 impl Node for Session {
-    fn id(&self) -> usize {
-        self.id
+    fn index(&self) -> usize {
+        self.index
     }
     fn identifier(&self) -> String {
         self.name.clone()
@@ -44,11 +44,11 @@ impl Node for Session {
         kill_sessions(&[self.name.clone()]);
         Ok(())
     }
-    fn session(&self) -> usize {
-        self.id
+    fn parent(&self) -> Option<Rc<RefCell<dyn Node>>> {
+        None
     }
-    fn tabs(&self) -> Rc<RefCell<Vec<usize>>> {
-        self.tabs.clone()
+    fn add_child(&mut self, child: Rc<RefCell<dyn Node>>) {
+        self.tabs.push(child);
     }
     fn is_shown(&self) -> bool {
         true
@@ -61,10 +61,23 @@ impl Node for Session {
         self.is_expanded
     }
     fn expand(&mut self) {
+        if self.is_expanded {
+            return;
+        }
         self.is_expanded = true;
+        for tab in self.tabs.iter() {
+            tab.borrow_mut().show();
+        }
     }
     fn collapse(&mut self) {
+        if !self.is_expanded {
+            return;
+        }
         self.is_expanded = false;
+        for tab in self.tabs.iter() {
+            tab.borrow_mut().collapse();
+            tab.borrow_mut().hide();
+        }
     }
     fn render(&self, keybind: String, is_selected: bool) -> NestedListItem {
         let text = match self.is_current_session {

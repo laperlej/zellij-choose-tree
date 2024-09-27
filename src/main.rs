@@ -1,6 +1,7 @@
 mod sessiontree;
 mod session;
 mod tab;
+mod pane;
 mod utils;
 
 use zellij_tile::prelude::*;
@@ -128,8 +129,8 @@ impl ZellijPlugin for State {
 impl State {
     fn handle_sessionpick_request(&mut self) -> Result<(), String> {
         let current_node = self.session_tree.get_current_node()?;
-        let session = self.session_tree.get_session(current_node.id())?;
-        let response = session.identifier();
+        let session = self.session_tree.get_session(current_node.borrow().index())?;
+        let response = session.borrow().identifier();
 
         match &self.handling_sessionpick_request_from {
             Some((PipeSource::Plugin(plugin_id), args)) => {
