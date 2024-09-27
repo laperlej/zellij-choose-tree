@@ -13,6 +13,7 @@ struct State {
     session_tree: SessionTree,
     initialised: bool,
 
+    handling_sessionpick_request_from: Option<(PipeSource, BTreeMap<String, String>)>,
     debug: String,
 }
 
@@ -21,8 +22,14 @@ register_plugin!(State);
 
 impl ZellijPlugin for State {
     fn load(&mut self, _configuration: BTreeMap<String, String>) {
-        request_permission(&[PermissionType::ReadApplicationState, PermissionType::RunCommands, PermissionType::ChangeApplicationState]);
-        subscribe(&[EventType::SessionUpdate, EventType::Key, EventType::Visible]);
+        request_permission(&[
+            PermissionType::ChangeApplicationState,
+            PermissionType::MessageAndLaunchOtherPlugins,
+            PermissionType::ReadApplicationState, 
+            PermissionType::ReadCliPipes,
+            PermissionType::RunCommands, 
+            ]);
+        subscribe(&[EventType::SessionUpdate, EventType::Key]);
     }
 
     fn update(&mut self, event: Event) -> bool {
@@ -39,8 +46,10 @@ impl ZellijPlugin for State {
                 match key {
                     // Select the node under the cursor
                     Key::Char('\n') => {
-                        let _ = self.session_tree.switch_to_selected();
-                        hide_self();
+                        let _ = match self.handling_sessionpick_request_from {
+                            Some(_) => self.handle_sessionpick_request(),
+                            _ => self.session_tree.switch_to_selected(),
+                        };
                     }
                     // Move up, looping around
                     Key::Char('k') | Key::Up => {
@@ -93,6 +102,19 @@ impl ZellijPlugin for State {
         should_render
     }
 
+    fn pipe(&mut self, pipe_message: PipeMessage) -> bool {
+        if pipe_message.is_private && pipe_message.name == "sessionpicker" {
+            if let PipeSource::Cli(pipe_id) = &pipe_message.source {
+                self.debug = format!("Received sessionpicker request from cli pipe {}", pipe_id);
+                block_cli_pipe_input(pipe_id);
+            }
+            self.handling_sessionpick_request_from = Some((pipe_message.source, pipe_message.args));
+            true
+        } else {
+            false
+        }
+    }
+
     fn render(&mut self, rows: usize, cols: usize) {
         println!();
         if !self.debug.is_empty() {
@@ -100,5 +122,32 @@ impl ZellijPlugin for State {
             println!();
         }
         self.session_tree.render(rows.saturating_sub(3), cols);
+    }
+}
+
+impl State {
+    fn handle_sessionpick_request(&mut self) -> Result<(), String> {
+        let current_node = self.session_tree.get_current_node()?;
+        let session = self.session_tree.get_session(current_node.id())?;
+        let response = session.identifier();
+
+        match &self.handling_sessionpick_request_from {
+            Some((PipeSource::Plugin(plugin_id), args)) => {
+                pipe_message_to_plugin(
+                    MessageToPlugin::new("sessionpicker_result")
+                        .with_destination_plugin_id(*plugin_id)
+                        .with_args(args.clone())
+                        .with_payload(response),
+                );
+                close_self();
+            }
+            Some((PipeSource::Cli(pipe_id), _args)) => {
+                cli_pipe_output(pipe_id, &response);
+                unblock_cli_pipe_input(pipe_id);
+                close_self();
+            }
+            _ => {}
+        };
+        Ok(())
     }
 }

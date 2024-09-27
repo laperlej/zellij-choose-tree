@@ -39,6 +39,7 @@ impl From<Vec<SessionInfo>> for SessionTree {
 
 pub trait Node {
     fn id(&self) -> usize;
+    fn identifier(&self) -> String;
     fn focus(&self) -> Result<(), String>;
     fn kill(&self) -> Result<(), String>;
     fn session(&self) -> usize;

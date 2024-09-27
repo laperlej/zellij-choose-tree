@@ -28,6 +28,9 @@ impl Node for Tab {
     fn id(&self) -> usize {
         self.position
     }
+    fn identifier(&self) -> String {
+        self.name.clone()
+    }
     fn focus(&self) -> Result<(), String> {
         switch_session_with_focus(&self.session_name, Some(self.position), None);
         hide_self();

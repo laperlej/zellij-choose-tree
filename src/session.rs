@@ -28,6 +28,9 @@ impl Node for Session {
     fn id(&self) -> usize {
         self.id
     }
+    fn identifier(&self) -> String {
+        self.name.clone()
+    }
     fn focus(&self) -> Result<(), String> {
         if self.is_current_session {
             hide_self();
