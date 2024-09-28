@@ -36,7 +36,7 @@ tmux {
     bind "s" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij-choose-tree.wasm" {
             floating true
             move_to_focused_tab true
-            show_plugin false
+            show_plugins false
         }; SwitchToMode "Locked";
     }
 }
@@ -44,7 +44,7 @@ tmux {
 
 Optional arguments:
 
-- `show_plugin true|false`: display/hide the plugin panes, default is `false`
+- `show_plugins true|false`: display/hide the plugin panes, default is `false`
 
 ## Use as a sessionpicker
 
