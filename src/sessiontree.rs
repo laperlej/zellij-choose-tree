@@ -3,6 +3,7 @@ use crate::utils::{IdGenerator, KeybindGenerator};
 use crate::session::Session;
 use crate::tab::Tab;
 use crate::pane::Pane;
+use crate::config::Config;
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -12,38 +13,6 @@ pub struct SessionTree {
     nodes: Vec<Rc<RefCell<dyn Node>>>,
     cursor: i32,
     quick_find: Vec<usize>,
-}
-
-impl From<Vec<SessionInfo>> for SessionTree {
-    fn from(sessions: Vec<SessionInfo>) -> Self {
-        let mut nodes: Vec<Rc<RefCell<dyn Node>>> = Vec::new();
-        let mut id_generator = IdGenerator::new();
-        for session in sessions.iter() {
-            let session_index = id_generator.next();
-            let session_node: Rc<RefCell<dyn Node>> = Rc::new(RefCell::new(Session::new(session_index, session.name.clone(), session.is_current_session)));
-            nodes.push(session_node.clone());
-            for tab in session.tabs.iter() {
-                let tab_index = id_generator.next();
-                let tab_node = Rc::new(RefCell::new(Tab::new(tab_index, tab.name.clone(), tab.position, session_node.clone())));
-                session_node.borrow_mut().add_child(tab_node.clone());
-                nodes.push(tab_node.clone());
-                for pane in session.panes.panes.get(&tab.position).unwrap_or(&Vec::new()) {
-                    if pane.is_plugin {
-                        continue;
-                    }
-                    let pane_index = id_generator.next();
-                    let pane_node = Rc::new(RefCell::new(Pane::new(pane_index, pane.title.clone(), (pane.id, pane.is_plugin), tab_node.clone())));
-                    tab_node.borrow_mut().add_child(pane_node.clone());
-                    nodes.push(pane_node.clone());
-                }
-            }
-        }
-        Self {
-            nodes,
-            cursor: 0,
-            quick_find: Vec::new(),
-        }
-    }
 }
 
 pub trait Node {
@@ -65,6 +34,36 @@ pub trait Node {
 
 
 impl SessionTree {
+    pub fn new(sessions: Vec<SessionInfo>, config: &Config) -> Self {
+        let mut nodes: Vec<Rc<RefCell<dyn Node>>> = Vec::new();
+        let mut id_generator = IdGenerator::new();
+        for session in sessions.iter() {
+            let session_index = id_generator.next();
+            let session_node: Rc<RefCell<dyn Node>> = Rc::new(RefCell::new(Session::new(session_index, session.name.clone(), session.is_current_session)));
+            nodes.push(session_node.clone());
+            for tab in session.tabs.iter() {
+                let tab_index = id_generator.next();
+                let tab_node = Rc::new(RefCell::new(Tab::new(tab_index, tab.name.clone(), tab.position, session_node.clone())));
+                session_node.borrow_mut().add_child(tab_node.clone());
+                nodes.push(tab_node.clone());
+                for pane in session.panes.panes.get(&tab.position).unwrap_or(&Vec::new()) {
+                    if !config.show_plugins && pane.is_plugin {
+                        continue;
+                    }
+                    let pane_index = id_generator.next();
+                    let pane_node = Rc::new(RefCell::new(Pane::new(pane_index, pane.title.clone(), (pane.id, pane.is_plugin), tab_node.clone())));
+                    tab_node.borrow_mut().add_child(pane_node.clone());
+                    nodes.push(pane_node.clone());
+                }
+            }
+        }
+        Self {
+            nodes,
+            cursor: 0,
+            quick_find: Vec::new(),
+        }
+    }
+
     pub fn get_current_node(&self) -> Result<Rc<RefCell<dyn Node>>, String> {
         let node = self.nodes.get(self.cursor as usize).ok_or("cursor out of range")?;
         Ok(node.clone())

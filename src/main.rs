@@ -1,18 +1,21 @@
+mod config;
+mod pane;
 mod sessiontree;
 mod session;
 mod tab;
-mod pane;
 mod utils;
 
 use zellij_tile::prelude::*;
 use std::collections::BTreeMap;
 
+use config::Config;
 use sessiontree::SessionTree;
 
 #[derive(Default)]
 struct State {
     session_tree: SessionTree,
     initialised: bool,
+    config: Config,
 
     handling_sessionpick_request_from: Option<(PipeSource, BTreeMap<String, String>)>,
     debug: String,
@@ -22,7 +25,8 @@ register_plugin!(State);
 
 
 impl ZellijPlugin for State {
-    fn load(&mut self, _configuration: BTreeMap<String, String>) {
+    fn load(&mut self, configuration: BTreeMap<String, String>) {
+        self.config = Config::from(configuration);
         request_permission(&[
             PermissionType::ChangeApplicationState,
             PermissionType::MessageAndLaunchOtherPlugins,
@@ -38,7 +42,7 @@ impl ZellijPlugin for State {
         match event { 
             Event::SessionUpdate(sessions, _) => {
                 if !self.initialised {
-                    self.session_tree = SessionTree::from(sessions);
+                    self.session_tree = SessionTree::new(sessions, &self.config);
                     self.initialised = true;
                     should_render = true;
                 }
