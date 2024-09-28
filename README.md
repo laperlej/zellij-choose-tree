@@ -36,10 +36,38 @@ tmux {
     bind "s" { LaunchOrFocusPlugin "file:~/.config/zellij/plugins/zellij-choose-tree.wasm" {
             floating true
             move_to_focused_tab true
+            show_plugin false
         }; SwitchToMode "Locked";
     }
 }
 ```
+
+Optional arguments:
+
+- `show_plugin true|false`: display/hide the plugin panes, default is `false`
+
+## Use as a sessionpicker
+
+This plugin can also act as a `sessionpicker` when called through a pipe.
+
+In your config file:
+
+```kdl
+plugins {
+    // other plugins here ...
+    sessionpicker location="file:~/.config/zellij/plugins/zellij-choose-tree.wasm"
+}
+```
+
+From the command line:
+
+```bash
+zellij pipe --plugin sessionpicker
+```
+
+The name of the selected session will be returned.
+
+Other plugins can also call this plugin through a pipe in the same way.
 
 ## Contributing
 
