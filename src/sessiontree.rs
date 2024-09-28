@@ -28,6 +28,9 @@ impl From<Vec<SessionInfo>> for SessionTree {
                 session_node.borrow_mut().add_child(tab_node.clone());
                 nodes.push(tab_node.clone());
                 for pane in session.panes.panes.get(&tab.position).unwrap_or(&Vec::new()) {
+                    if pane.is_plugin {
+                        continue;
+                    }
                     let pane_index = id_generator.next();
                     let pane_node = Rc::new(RefCell::new(Pane::new(pane_index, pane.title.clone(), (pane.id, pane.is_plugin), tab_node.clone())));
                     tab_node.borrow_mut().add_child(pane_node.clone());
