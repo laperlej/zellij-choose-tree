@@ -1,12 +1,12 @@
 mod config;
 mod pane;
-mod sessiontree;
 mod session;
+mod sessiontree;
 mod tab;
 mod utils;
 
-use zellij_tile::prelude::*;
 use std::collections::BTreeMap;
+use zellij_tile::prelude::*;
 
 use config::Config;
 use sessiontree::SessionTree;
@@ -23,23 +23,22 @@ struct State {
 
 register_plugin!(State);
 
-
 impl ZellijPlugin for State {
     fn load(&mut self, configuration: BTreeMap<String, String>) {
         self.config = Config::from(configuration);
         request_permission(&[
             PermissionType::ChangeApplicationState,
             PermissionType::MessageAndLaunchOtherPlugins,
-            PermissionType::ReadApplicationState, 
+            PermissionType::ReadApplicationState,
             PermissionType::ReadCliPipes,
-            PermissionType::RunCommands, 
-            ]);
+            PermissionType::RunCommands,
+        ]);
         subscribe(&[EventType::SessionUpdate, EventType::Key]);
     }
 
     fn update(&mut self, event: Event) -> bool {
         let mut should_render = false;
-        match event { 
+        match event {
             Event::SessionUpdate(sessions, _) => {
                 if !self.initialised {
                     self.session_tree = SessionTree::new(sessions, &self.config);
@@ -50,40 +49,61 @@ impl ZellijPlugin for State {
             Event::Key(key) => {
                 match key {
                     // Select the node under the cursor
-                    Key::Char('\n') => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Enter,
+                        key_modifiers: _,
+                    } => {
                         let _ = match self.handling_sessionpick_request_from {
                             Some(_) => self.handle_sessionpick_request(),
                             _ => self.session_tree.switch_to_selected(),
                         };
                     }
                     // Move up, looping around
-                    Key::Char('k') | Key::Up => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char('k') | BareKey::Up,
+                        key_modifiers: _,
+                    } => {
                         let _ = self.session_tree.handle_up();
                         should_render = true;
                     }
                     // Move down, looping around
-                    Key::Char('j') | Key::Down => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char('j') | BareKey::Down,
+                        key_modifiers: _,
+                    } => {
                         let _ = self.session_tree.handle_down();
                         should_render = true;
                     }
                     // Collapse the current node, moving up if already collapsed
-                    Key::Char('h') | Key::Left => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char('h') | BareKey::Left,
+                        key_modifiers: _,
+                    } => {
                         let _ = self.session_tree.handle_left();
                         should_render = true;
                     }
                     // Expand the current node, moving down if already expanded
-                    Key::Char('l') | Key::Right => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char('l') | BareKey::Right,
+                        key_modifiers: _,
+                    } => {
                         let _ = self.session_tree.handle_right();
                         should_render = true;
                     }
                     // Kill the current node
-                    Key::Char('x') | Key::Delete => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char('x') | BareKey::Delete,
+                        key_modifiers: _,
+                    } => {
                         let _ = self.session_tree.kill_selected();
                         self.initialised = false;
                         should_render = true;
                     }
                     // Select the node at the given index
-                    Key::Char(c) => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Char(c),
+                        key_modifiers: _,
+                    } => {
                         if let Some(digit) = c.to_digit(10) {
                             let _ = self.session_tree.switch_by_index(digit as usize);
                         }
@@ -94,9 +114,12 @@ impl ZellijPlugin for State {
                         }
                         //hide_self();
                         should_render = true;
-                    },
+                    }
                     // Quit
-                    Key::Esc => {
+                    KeyWithModifier {
+                        bare_key: BareKey::Esc,
+                        key_modifiers: _,
+                    } => {
                         hide_self();
                     }
                     _ => (),
@@ -133,7 +156,9 @@ impl ZellijPlugin for State {
 impl State {
     fn handle_sessionpick_request(&mut self) -> Result<(), String> {
         let current_node = self.session_tree.get_current_node()?;
-        let session = self.session_tree.get_session(current_node.borrow().index())?;
+        let session = self
+            .session_tree
+            .get_session(current_node.borrow().index())?;
         let response = session.borrow().identifier();
 
         match &self.handling_sessionpick_request_from {

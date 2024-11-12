@@ -6,4 +6,4 @@ description = "Zellij plugin to quickly switch between sessions, inspired by tmu
 license = "MIT"
 
 [dependencies]
-zellij-tile = "0.40.1"
+zellij-tile = "0.41.1"
