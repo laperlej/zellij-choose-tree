@@ -8,6 +8,7 @@ pub struct Tab {
     index: usize,
     name: String,
     position: usize,
+    active: bool,
     session: Rc<RefCell<dyn Node>>,
     panes: Vec<Rc<RefCell<dyn Node>>>,
     shown: bool,
@@ -15,11 +16,12 @@ pub struct Tab {
 }
 
 impl Tab {
-    pub fn new(index: usize, name: String, position: usize, session: Rc<RefCell<dyn Node>>) -> Self {
+    pub fn new(index: usize, name: String, position: usize, session: Rc<RefCell<dyn Node>>, active: bool) -> Self {
         Self {
             index,
             name,
             position,
+            active,
             session: session.clone(),
             panes: Vec::new(),
             shown: false,
@@ -35,9 +37,16 @@ impl Node for Tab {
     fn identifier(&self) -> String {
         self.position.to_string()
     }
+    fn is_focused(&self) -> bool {
+        self.active
+    }
     fn focus(&self) -> Result<(), String> {
         let session = self.session.borrow();
-        switch_session_with_focus(&session.identifier(), Some(self.position), None);
+        if session.is_focused() {
+            focus_or_create_tab(self.name.as_str());
+        } else {
+            switch_session_with_focus(&session.identifier(), Some(self.position), None);
+        }
         hide_self();
         Ok(())
     }

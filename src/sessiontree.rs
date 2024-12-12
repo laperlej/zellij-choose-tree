@@ -18,6 +18,7 @@ pub struct SessionTree {
 pub trait Node {
     fn index(&self) -> usize;
     fn identifier(&self) -> String;
+    fn is_focused(&self) -> bool;
     fn focus(&self) -> Result<(), String>;
     fn kill(&self) -> Result<(), String>;
     fn parent(&self) -> Option<Rc<RefCell<dyn Node>>>;
@@ -43,7 +44,7 @@ impl SessionTree {
             nodes.push(session_node.clone());
             for tab in session.tabs.iter() {
                 let tab_index = id_generator.next();
-                let tab_node = Rc::new(RefCell::new(Tab::new(tab_index, tab.name.clone(), tab.position, session_node.clone())));
+                let tab_node = Rc::new(RefCell::new(Tab::new(tab_index, tab.name.clone(), tab.position, session_node.clone(), tab.active)));
                 session_node.borrow_mut().add_child(tab_node.clone());
                 nodes.push(tab_node.clone());
                 for pane in session.panes.panes.get(&tab.position).unwrap_or(&Vec::new()) {
@@ -51,7 +52,7 @@ impl SessionTree {
                         continue;
                     }
                     let pane_index = id_generator.next();
-                    let pane_node = Rc::new(RefCell::new(Pane::new(pane_index, pane.title.clone(), (pane.id, pane.is_plugin), tab_node.clone())));
+                    let pane_node = Rc::new(RefCell::new(Pane::new(pane_index, pane.title.clone(), (pane.id, pane.is_plugin), tab_node.clone(), pane.is_focused)));
                     tab_node.borrow_mut().add_child(pane_node.clone());
                     nodes.push(pane_node.clone());
                 }

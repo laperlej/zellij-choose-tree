@@ -31,6 +31,9 @@ impl Node for Session {
     fn identifier(&self) -> String {
         self.name.clone()
     }
+    fn is_focused(&self) -> bool {
+        self.is_current_session
+    }
     fn focus(&self) -> Result<(), String> {
         if self.is_current_session {
             hide_self();
