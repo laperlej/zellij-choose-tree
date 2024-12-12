@@ -1,6 +1,6 @@
 [package]
 name = "zellij-choose-tree"
-version = "0.4.0"
+version = "0.4.4"
 edition = "2021"
 description = "Zellij plugin to quickly switch between sessions, inspired by tmux choose-tree"
 license = "MIT"
