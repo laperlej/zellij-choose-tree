@@ -7,16 +7,18 @@ use crate::sessiontree::Node;
 pub struct Pane {
     index: usize,
     title: String,
+    is_focused: bool,
     pane_id: (u32, bool), //(id, is_plugin)
     tab: Rc<RefCell<dyn Node>>,
     shown: bool,
 }
 
 impl Pane {
-    pub fn new(index: usize, title: String, pane_id: (u32, bool), tab: Rc<RefCell<dyn Node>>) -> Self {
+    pub fn new(index: usize, title: String, pane_id: (u32, bool), tab: Rc<RefCell<dyn Node>>, is_focused: bool) -> Self {
         Self {
             index,
             title,
+            is_focused,
             pane_id,
             tab: tab.clone(),
             shown: false,
@@ -31,12 +33,19 @@ impl Node for Pane {
     fn identifier(&self) -> String {
         self.pane_id.0.to_string()
     }
+    fn is_focused(&self) -> bool {
+        self.is_focused
+    }
     fn focus(&self) -> Result<(), String> {
         let tab = self.tab.borrow();
         let tab_position = tab.identifier().parse().map_err(|_| "tab identifier is not a number")?;
         let session = tab.parent().ok_or("tab has no parent")?;
         let session_name = session.borrow().identifier();
-        switch_session_with_focus(&session_name, Some(tab_position), Some(self.pane_id));
+        if session.borrow().is_focused() {
+            focus_terminal_pane(self.pane_id.0, true);
+        } else {
+            switch_session_with_focus(&session_name, Some(tab_position), Some(self.pane_id));
+        }
         hide_self();
         Ok(())
     }
