@@ -26,11 +26,13 @@
         };
 
       in rec {
-        defaultPackage = naersk'.buildPackage {
+      packages.zellij-choose-tree = naersk'.buildPackage {
           src = ./.;
           release = true;
           CARGO_BUILD_TARGET = "wasm32-wasip1";
         };
+
+        defaultPackage = packages.zellij-choose-tree;
 
         devShell = pkgs.mkShell {
           nativeBuildInputs = with pkgs; [ rustc cargo ];
