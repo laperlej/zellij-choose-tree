@@ -45,6 +45,7 @@ tmux {
 Optional arguments:
 
 - `show_plugins true|false`: display/hide the plugin panes, default is `false`
+- `expanded true|false`: start with every session expanded to show its tabs, default is `false`
 
 ## Use as a sessionpicker
 

@@ -58,6 +58,12 @@ impl SessionTree {
                 }
             }
         }
+        if config.expanded {
+            // Sessions are the only nodes without a parent; expanding them shows their tabs.
+            for node in nodes.iter().filter(|n| n.borrow().parent().is_none()) {
+                node.borrow_mut().expand();
+            }
+        }
         Self {
             nodes,
             cursor: 0,
