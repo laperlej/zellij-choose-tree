@@ -201,6 +201,10 @@ impl SessionTree {
     pub fn render(&mut self, rows: usize, _cols: usize) {
         let mut keybind_generator = KeybindGenerator::new();
         let mut lines = Vec::new();
+        // The keybind labels are regenerated from the currently shown nodes on every
+        // render, so the index map has to be rebuilt with them. Appending instead left
+        // the first render's map in place and every later number shortcut read it.
+        self.quick_find.clear();
         for (i, node) in self.nodes.iter().enumerate().filter(|(_, node)| node.borrow().is_shown()) {
             let text = node.borrow().render(keybind_generator.next(), i == self.cursor as usize);
             lines.push(text);
