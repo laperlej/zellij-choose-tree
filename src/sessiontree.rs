@@ -71,6 +71,47 @@ impl SessionTree {
         }
     }
 
+    /// Path of identifiers from the root session down to this node. Used to carry the
+    /// cursor and the expanded nodes across a rebuild, since node indices do not survive
+    /// a session gaining or losing a tab.
+    fn key(node: &Rc<RefCell<dyn Node>>) -> String {
+        let mut parts = vec![node.borrow().identifier()];
+        let mut parent = node.borrow().parent();
+        while let Some(p) = parent {
+            parts.push(p.borrow().identifier());
+            parent = p.borrow().parent();
+        }
+        parts.reverse();
+        parts.join("/")
+    }
+
+    pub fn selected_key(&self) -> Option<String> {
+        self.nodes.get(self.cursor as usize).map(Self::key)
+    }
+
+    pub fn expanded_keys(&self) -> Vec<String> {
+        self.nodes
+            .iter()
+            .filter(|n| n.borrow().is_expanded())
+            .map(Self::key)
+            .collect()
+    }
+
+    /// Re-apply a snapshot taken before a rebuild. Nodes are visited in order, so a
+    /// session is expanded before the tabs it reveals.
+    pub fn restore(&mut self, selected: Option<String>, expanded: &[String]) {
+        for i in 0..self.nodes.len() {
+            if expanded.contains(&Self::key(&self.nodes[i])) {
+                let _ = self.expand(i);
+            }
+        }
+        if let Some(target) = selected {
+            if let Some(i) = self.nodes.iter().position(|n| Self::key(n) == target) {
+                self.cursor = i as i32;
+            }
+        }
+    }
+
     pub fn get_current_node(&self) -> Result<Rc<RefCell<dyn Node>>, String> {
         let node = self.nodes.get(self.cursor as usize).ok_or("cursor out of range")?;
         Ok(node.clone())
