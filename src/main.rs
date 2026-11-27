@@ -14,6 +14,7 @@ use sessiontree::SessionTree;
 #[derive(Default)]
 struct State {
     session_tree: SessionTree,
+    sessions: Vec<SessionInfo>,
     initialised: bool,
     config: Config,
 
@@ -40,11 +41,24 @@ impl ZellijPlugin for State {
         let mut should_render = false;
         match event {
             Event::SessionUpdate(sessions, _) => {
-                if !self.initialised {
-                    self.session_tree = SessionTree::new(sessions, &self.config);
-                    self.initialised = true;
-                    should_render = true;
+                // A LaunchOrFocusPlugin binding keeps one instance alive for the whole
+                // session, so the tree has to follow sessions, tabs and panes as they
+                // change rather than being built once. Updates arrive only when
+                // something actually changed, and the equality check below skips the
+                // rebuild for the ones that do not affect the tree, so an idle plugin
+                // does no work.
+                if self.initialised && sessions == self.sessions {
+                    return false;
                 }
+                let selected = self.session_tree.selected_key();
+                let expanded = self.session_tree.expanded_keys();
+                self.sessions = sessions;
+                self.session_tree = SessionTree::new(self.sessions.clone(), &self.config);
+                if self.initialised {
+                    self.session_tree.restore(selected, &expanded);
+                }
+                self.initialised = true;
+                should_render = true;
             }
             Event::Key(key) => {
                 match key {
