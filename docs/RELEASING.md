@@ -1,12 +1,16 @@
 # Releasing
 
+The same process as [zellij-sessionizer](https://github.com/laperlej/zellij-sessionizer).
+Keep the two in step: a change here belongs there too.
+
 ## Versioning
 
-Tags are `vMAJOR.MINOR.PATCH` and are the source of truth. The `version` in
-`Cargo.toml` has historically drifted from them: the `v0.4.2` tag carries manifest
-version `0.4.4`. Nothing reads the manifest version, since the published asset is named
-`zellij-choose-tree.wasm` with no version in it, so a mismatch is cosmetic. Bump it
-anyway as part of the release so the two agree.
+Tags are `vMAJOR.MINOR.PATCH` and are the source of truth.
+
+Bump `version` in `Cargo.toml` to match the tag as part of the release. Nothing reads
+it (the published asset is `zellij-choose-tree.wasm`, with no version in the name), so a
+mismatch breaks nothing, but both repos drifted for years and the manifest stopped
+meaning anything. v0.5.0 is where this one was brought back in line.
 
 A new config key or user-visible behaviour is a minor bump. Bug fixes and build changes
 are a patch bump.
@@ -17,8 +21,8 @@ Local `main` is held by the bare repo, so use a fresh worktree rather than switc
 branches in an existing one.
 
 ```sh
-git -C .bare worktree add ../zellij-choose-tree/release-X.Y.Z -b release-X.Y.Z origin/main
-cd ../zellij-choose-tree/release-X.Y.Z
+git -C .bare worktree add ../release-X.Y.Z -b release-X.Y.Z origin/main
+cd ../release-X.Y.Z
 
 # bump the manifest; the build rewrites Cargo.lock's own entry to match
 sed -i '' 's/^version = ".*"$/version = "X.Y.Z"/' Cargo.toml
@@ -38,7 +42,7 @@ gh run watch
 gh release view vX.Y.Z --json assets -q '.assets[] | "\(.name) \(.size) \(.state)"'
 ```
 
-Expect one asset, `zellij-choose-tree.wasm`, around 1.2 MB, state `uploaded`.
+Expect one asset, around 1.2 MB, state `uploaded`.
 
 ## Two ways to publish a release with no asset
 
