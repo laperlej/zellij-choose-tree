@@ -46,6 +46,9 @@ loading the plugin from a layout, asserting on cell attributes rather than text,
 is published as a skill:
 <https://github.com/laperlej/skills/tree/main/skills/zellij-plugin-testing>
 
+`scripts/e2e.sh` is that check: three cases over `expanded`, exit 0 only when all pass.
+It asserts on `dump-screen` text, so it covers which rows render, not cursor or selection.
+
 What is specific to this plugin:
 
 - `zellij action dump-screen <file>` strips every escape byte. The selected row is a
